@@ -1,0 +1,229 @@
+-- MySQL Workbench Forward Engineering
+
+SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+
+-- -----------------------------------------------------
+-- Schema mydb
+-- -----------------------------------------------------
+-- -----------------------------------------------------
+-- Schema dailyrecipe
+-- -----------------------------------------------------
+DROP SCHEMA IF EXISTS `dailyrecipe` ;
+
+-- -----------------------------------------------------
+-- Schema dailyrecipe
+-- -----------------------------------------------------
+CREATE SCHEMA IF NOT EXISTS `dailyrecipe` DEFAULT CHARACTER SET utf8 ;
+USE `dailyrecipe` ;
+
+-- -----------------------------------------------------
+-- Table `dailyrecipe`.`day`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `dailyrecipe`.`day` ;
+
+CREATE TABLE IF NOT EXISTS `dailyrecipe`.`day` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(16) NOT NULL,
+  PRIMARY KEY (`id`))
+ENGINE = InnoDB
+AUTO_INCREMENT = 14
+DEFAULT CHARACTER SET = utf8mb3;
+
+
+-- -----------------------------------------------------
+-- Table `dailyrecipe`.`ingredient`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `dailyrecipe`.`ingredient` ;
+
+CREATE TABLE IF NOT EXISTS `dailyrecipe`.`ingredient` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(45) NOT NULL,
+  `image_path` VARCHAR(255) NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idingredient_UNIQUE` (`id` ASC) VISIBLE)
+ENGINE = InnoDB
+AUTO_INCREMENT = 13
+DEFAULT CHARACTER SET = utf8mb3;
+
+
+-- -----------------------------------------------------
+-- Table `dailyrecipe`.`recipe`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `dailyrecipe`.`recipe` ;
+
+CREATE TABLE IF NOT EXISTS `dailyrecipe`.`recipe` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(45) NOT NULL,
+  `description` MEDIUMTEXT NULL DEFAULT NULL,
+  `image_path` MEDIUMTEXT NULL DEFAULT NULL,
+  `multiplier` INT UNSIGNED NOT NULL,
+  `day_id` INT NOT NULL DEFAULT '-1',
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idrecipe_UNIQUE` (`id` ASC) VISIBLE,
+  UNIQUE INDEX `name_UNIQUE` (`name` ASC) VISIBLE,
+  INDEX `fk_Recipe_Day1_idx` (`day_id` ASC) VISIBLE)
+ENGINE = InnoDB
+AUTO_INCREMENT = 33
+DEFAULT CHARACTER SET = utf8mb3;
+
+
+-- -----------------------------------------------------
+-- Table `dailyrecipe`.`recipe_has_ingredient`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `dailyrecipe`.`recipe_has_ingredient` ;
+
+CREATE TABLE IF NOT EXISTS `dailyrecipe`.`recipe_has_ingredient` (
+  `recipe_id` INT NOT NULL,
+  `ingredient_id` INT NOT NULL,
+  `quantity` FLOAT UNSIGNED NOT NULL,
+  `unit_id` INT NOT NULL,
+  PRIMARY KEY (`recipe_id`, `ingredient_id`),
+  INDEX `fk_recipe_has_ingredient_recipe1_idx` (`recipe_id` ASC) VISIBLE,
+  INDEX `fk_recipe_has_ingredient_unity1_idx` (`unit_id` ASC) VISIBLE,
+  INDEX `fk_recipe_has_ingredient_ingredient1_idx` (`ingredient_id` ASC) VISIBLE,
+  CONSTRAINT `fk_recipe_has_ingredient_ingredient1`
+    FOREIGN KEY (`ingredient_id`)
+    REFERENCES `dailyrecipe`.`ingredient` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `fk_recipe_has_ingredient_recipe1`
+    FOREIGN KEY (`recipe_id`)
+    REFERENCES `dailyrecipe`.`recipe` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb3;
+
+
+-- -----------------------------------------------------
+-- Table `dailyrecipe`.`unit`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `dailyrecipe`.`unit` ;
+
+CREATE TABLE IF NOT EXISTS `dailyrecipe`.`unit` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(45) NOT NULL,
+  `symbol` VARCHAR(3) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE INDEX `idunity_UNIQUE` (`id` ASC) VISIBLE,
+  UNIQUE INDEX `name_UNIQUE` (`name` ASC) VISIBLE)
+ENGINE = InnoDB
+AUTO_INCREMENT = 8
+DEFAULT CHARACTER SET = utf8mb3;
+
+USE `dailyrecipe` ;
+
+-- -----------------------------------------------------
+-- procedure addIngredientToRecipe
+-- -----------------------------------------------------
+
+USE `dailyrecipe`;
+DROP procedure IF EXISTS `dailyrecipe`.`addIngredientToRecipe`;
+
+DELIMITER $$
+USE `dailyrecipe`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `addIngredientToRecipe`(idRecipe int, idIngredient int, quantity float, unitId int)
+BEGIN
+	INSERT INTO recipe_has_ingredient (recipe_id, ingredient_id, quantity, unit_id)
+    VALUES (idRecipe, idIngredient, quantity, unitID);
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure addIngredientsToRecipe
+-- -----------------------------------------------------
+
+USE `dailyrecipe`;
+DROP procedure IF EXISTS `dailyrecipe`.`addIngredientsToRecipe`;
+
+DELIMITER $$
+USE `dailyrecipe`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `addIngredientsToRecipe`(idRecipe int, idIngredient int, quantity float, unitId int)
+BEGIN
+	INSERT INTO recipe_has_ingredient (recipe_id, ingredient_id, quantity, unit_id)
+    VALUES (idRecipe, idIngredient, quantity, unitID);
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure delete_recipe_ingredients
+-- -----------------------------------------------------
+
+USE `dailyrecipe`;
+DROP procedure IF EXISTS `dailyrecipe`.`delete_recipe_ingredients`;
+
+DELIMITER $$
+USE `dailyrecipe`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `delete_recipe_ingredients`(recipeId int, ingredientIds longtext)
+BEGIN
+	SET @sql = CONCAT('DELETE FROM `recipe_has_ingredient`
+			WHERE (`recipe_id` = ', recipeId, ') 
+			AND (`ingredient_id` in (', ingredientIds, '))');
+            PREPARE stmt FROM @sql;
+	EXECUTE stmt;
+	DEALLOCATE PREPARE stmt;
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure save_recipe
+-- -----------------------------------------------------
+
+USE `dailyrecipe`;
+DROP procedure IF EXISTS `dailyrecipe`.`save_recipe`;
+
+DELIMITER $$
+USE `dailyrecipe`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `save_recipe`(name_ varchar(255), descri longtext, image varchar(255), multiplier int)
+BEGIN
+	INSERT INTO dailyrecipe.recipe (`name`, `description`, image_path, multiplier, Day_idDay) 
+    VALUES (name_, descri, image, multiplier, null);
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure select_recipe_ingredients
+-- -----------------------------------------------------
+
+USE `dailyrecipe`;
+DROP procedure IF EXISTS `dailyrecipe`.`select_recipe_ingredients`;
+
+DELIMITER $$
+USE `dailyrecipe`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `select_recipe_ingredients`(id int)
+BEGIN
+	SELECT ingredient.id, ingredient.name, rec_ing.quantity, rec_ing.unit_id FROM recipe
+		JOIN recipe_has_ingredient AS rec_ing ON recipe.id = rec_ing.recipe_id 
+		JOIN ingredient ON rec_ing.ingredient_id = ingredient.id
+		WHERE recipe.id = id;
+END$$
+
+DELIMITER ;
+
+-- -----------------------------------------------------
+-- procedure shoppingList
+-- -----------------------------------------------------
+
+USE `dailyrecipe`;
+DROP procedure IF EXISTS `dailyrecipe`.`shoppingList`;
+
+DELIMITER $$
+USE `dailyrecipe`$$
+CREATE DEFINER=`root`@`localhost` PROCEDURE `shoppingList`()
+BEGIN
+	SELECT recipe_has_ingredient.* FROM dailyrecipe.recipe_has_ingredient 
+	join dailyrecipe.recipe on recipe_id = recipe.id WHERE day_id <> -1
+	order by recipe_id;
+END$$
+
+DELIMITER ;
+
+SET SQL_MODE=@OLD_SQL_MODE;
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
+SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
